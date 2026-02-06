@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conway's Spiel des Lebens - Extended Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow: hidden;
+        }
+
+        body.fullscreen {
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        body.fullscreen .container {
+            max-width: 100%;
+            margin: 0;
+            border-radius: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        body.fullscreen header {
+            padding: 10px;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        body.fullscreen h1 {
+            font-size: 1.5em;
+            margin-bottom: 3px;
+        }
+
+        .subtitle {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        body.fullscreen .subtitle {
+            font-size: 0.85em;
+        }
+
+        .fullscreen-toggle {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .fullscreen-toggle:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .main-content {
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        body.fullscreen .main-content {
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        #canvasWrapper {
+            position: relative;
+            flex: 1;
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f0f0f0;
+            min-height: 0;
+        }
+
+        #gameCanvas {
+            cursor: crosshair;
+            display: block;
+        }
+
+        .controls-panel {
+            width: 340px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            max-height: calc(100vh - 180px);
+        }
+
+        body.fullscreen .controls-panel {
+            width: 300px;
+            max-height: calc(100vh - 100px);
+            padding: 10px;
+        }
+
+        .control-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+        }
+
+        .control-section h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+
+        body.fullscreen .control-section h3 {
+            font-size: 1em;
+            margin-bottom: 8px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 70px;
+        }
+
+        body.fullscreen button {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .slider-container {
+            margin: 12px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #555;
+            font-size: 13px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.2);
+        }
+
+        .value-display {
+            display: inline-block;
+            float: right;
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .pattern-btn {
+            padding: 8px;
+            font-size: 12px;
+            min-width: auto;
+        }
+
+        .stats {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+            font-size: 13px;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+
+        .color-scheme-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .color-btn {
+            width: 100%;
+            height: 35px;
+            border: 3px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .color-btn.active {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        body.fullscreen .info-box {
+            display: none;
+        }
+
+        .mode-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .mode-btn {
+            padding: 10px;
+            font-size: 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        #populationChart {
+            width: 100%;
+            height: 80px;
+            background: white;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .history-controls {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .history-controls button {
+            flex: 1;
+            padding: 6px;
+            font-size: 11px;
+        }
+
+        .symmetry-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .symmetry-btn {
+            padding: 8px;
+            font-size: 11px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+        }
+
+        .symmetry-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .rule-editor {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .rule-group {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .rule-group h4 {
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .controls-panel {
+                width: 100%;
+                max-height: none;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .heatmap-legend {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            margin-top: 5px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Conway's Spiel des Lebens - Extended Edition</h1>
+            <p class="subtitle">Erweitert mit revolutionären Features</p>
+            <button class="fullscreen-toggle" onclick="toggleFullscreen()">🖥️ Vollbild</button>
+        </header>
+
+        <div class="main-content">
+            <div class="canvas-container">
+                <div id="canvasWrapper">
+                    <canvas id="gameCanvas"></canvas>
+                </div>
+                
+                <div class="info-box">
+                    <strong>🖱️ Modi:</strong> <span id="currentModeInfo">Klicken zum Zeichnen</span>
+                    | <strong>Muster:</strong> <span id="currentPattern">Keins</span>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>⏯️ Steuerung</h3>
+                    <div class="button-group">
+                        <button id="playPauseBtn" class="btn-primary">▶️ Start</button>
+                        <button id="stepBtn" class="btn-secondary">⏭️ Schritt</button>
+                    </div>
+                    <div class="button-group" style="margin-top: 8px;">
+                        <button id="clearBtn" class="btn-danger">🗑️ Löschen</button>
+                        <button id="randomBtn" class="btn-success">🎲 Zufall</button>
+                    </div>
+                    <div class="history-controls">
+                        <button class="btn-warning" onclick="rewindTime()">⏪ -10</button>
+                        <button class="btn-warning" onclick="rewindTime(1)">◀️ -1</button>
+                        <button class="btn-info" onclick="fastForward(1)">▶️ +1</button>
+                        <button class="btn-info" onclick="fastForward()">⏩ +10</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>⚡ Geschwindigkeit</h3>
+                    <div class="slider-container">
+                        <label>
+                            FPS: <span class="value-display" id="speedValue">10</span>
+                        </label>
+                        <input type="range" id="speedSlider" min="1" max="120" value="10">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>📊 Statistiken & Graph</h3>
+                    <div class="stats">
+                        <div class="stat-row">
+                            <span class="stat-label">Generation:</span>
+                            <span class="stat-value" id="generation">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Lebende Zellen:</span>
+                            <span class="stat-value" id="aliveCells">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Bevölkerung:</span>
+                            <span class="stat-value" id="population">0%</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Stabilität:</span>
+                            <span class="stat-value" id="stability">Aktiv</span>
+                        </div>
+                    </div>
+                    <canvas id="populationChart"></canvas>
+                </div>
+
+                <div class="control-section">
+                    <h3>🖌️ Zeichen-Modi</h3>
+                    <div class="mode-selector">
+                        <button class="mode-btn active" data-mode="draw">✏️ Zeichnen</button>
+                        <button class="mode-btn" data-mode="brush">🖌️ Pinsel</button>
+                        <button class="mode-btn" data-mode="spray">🎨 Spray</button>
+                        <button class="mode-btn" data-mode="wave">🌊 Welle</button>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="paintMode">
+                        <label for="paintMode">Malen beim Ziehen</label>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>🔄 Symmetrie</h3>
+                    <div class="symmetry-selector">
+                        <button class="symmetry-btn active" data-symmetry="none">Keine</button>
+                        <button class="symmetry-btn" data-symmetry="horizontal">↔️</button>
+                        <button class="symmetry-btn" data-symmetry="vertical">↕️</button>
+                        <button class="symmetry-btn" data-symmetry="both">✖️</button>
+                        <button class="symmetry-btn" data-symmetry="quad">⊞</button>
+                        <button class="symmetry-btn" data-symmetry="radial4">✦</button>
+                        <button class="symmetry-btn" data-symmetry="radial8">✸</button>
+                        <button class="symmetry-btn" data-symmetry="diagonal">⤢</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>🎨 Darstellung</h3>
+                    <div class="slider-container">
+                        <label>
+                            Zellgröße: <span class="value-display" id="cellSizeValue">8</span>
+                        </label>
+                        <input type="range" id="cellSizeSlider" min="2" max="20" value="8">
+                    </div>
+                    <div class="slider-container">
+                        <label>
+                            Canvas Breite: <span class="value-display" id="canvasWidthValue">1000</span>
+                        </label>
+                        <input type="range" id="canvasWidthSlider" min="600" max="2400" value="1000" step="100">
+                    </div>
+                    <div class="slider-container">
+                        <label>
+                            Canvas Höhe: <span class="value-display" id="canvasHeightValue">700</span>
+                        </label>
+                        <input type="range" id="canvasHeightSlider" min="400" max="1600" value="700" step="100">
+                    </div>
+                    
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="gridToggle" checked>
+                        <label for="gridToggle">Gitter anzeigen</label>
+                    </div>
+                    
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="ageColorToggle">
+                        <label for="ageColorToggle">Alters-Farbverlauf</label>
+                    </div>
+                    
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="heatmapToggle">
+                        <label for="heatmapToggle">Heatmap-Modus</label>
+                    </div>
+                    
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="trailToggle">
+                        <label for="trailToggle">Bewegungsspuren</label>
+                    </div>
+                    
+                    <h4 style="margin-top: 12px; margin-bottom: 8px; color: #555; font-size: 13px;">Farbschema:</h4>
+                    <div class="color-scheme-selector">
+                        <button class="color-btn active" data-scheme="classic" style="background: linear-gradient(135deg, #000 50%, #fff 50%);"></button>
+                        <button class="color-btn" data-scheme="ocean" style="background: linear-gradient(135deg, #006994 50%, #e0f7ff 50%);"></button>
+                        <button class="color-btn" data-scheme="forest" style="background: linear-gradient(135deg, #2d5016 50%, #e8f5e9 50%);"></button>
+                        <button class="color-btn" data-scheme="sunset" style="background: linear-gradient(135deg, #ff6b35 50%, #fff5e6 50%);"></button>
+                        <button class="color-btn" data-scheme="purple" style="background: linear-gradient(135deg, #6a0dad 50%, #f3e5f5 50%);"></button>
+                        <button class="color-btn" data-scheme="neon" style="background: linear-gradient(135deg, #00ff00 50%, #000 50%);"></button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>🧬 Eigene Regeln</h3>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="customRulesToggle">
+                        <label for="customRulesToggle">Eigene Regeln aktivieren</label>
+                    </div>
+                    <div class="rule-editor" id="ruleEditor" style="opacity: 0.3; pointer-events: none;">
+                        <div class="rule-group">
+                            <h4>Geburt bei Nachbarn:</h4>
+                            <div class="checkbox-group" id="birthRules"></div>
+                        </div>
+                        <div class="rule-group">
+                            <h4>Überleben bei Nachbarn:</h4>
+                            <div class="checkbox-group" id="surviveRules"></div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 11px; color: #666;">
+                        Standard: B3/S23 (Conway)
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>🎯 Fertige Muster</h3>
+                    <div class="button-group" style="margin-bottom: 8px;">
+                        <button class="btn-warning" onclick="sprayPatterns()">🎨 Verteilen</button>
+                        <button class="btn-info" onclick="createWavePattern()">🌊 Welle</button>
+                    </div>
+                    <div class="pattern-grid">
+                        <button class="pattern-btn btn-primary" data-pattern="glider">✈️ Gleiter</button>
+                        <button class="pattern-btn btn-primary" data-pattern="blinker">💫 Blinker</button>
+                        <button class="pattern-btn btn-primary" data-pattern="toad">🐸 Kröte</button>
+                        <button class="pattern-btn btn-primary" data-pattern="beacon">🔦 Beacon</button>
+                        <button class="pattern-btn btn-primary" data-pattern="pulsar">⭐ Pulsar</button>
+                        <button class="pattern-btn btn-primary" data-pattern="pentadecathlon">🎯 Pentadecathlon</button>
+                        <button class="pattern-btn btn-primary" data-pattern="glidergun">🔫 Glider Gun</button>
+                        <button class="pattern-btn btn-primary" data-pattern="acorn">🌰 Acorn</button>
+                        <button class="pattern-btn btn-primary" data-pattern="rpentomino">🔷 R-Pentomino</button>
+                        <button class="pattern-btn btn-primary" data-pattern="diehard">💀 Diehard</button>
+                        <button class="pattern-btn btn-primary" data-pattern="lightweight">🚀 LWSS</button>
+                        <button class="pattern-btn btn-primary" data-pattern="copperhead">🐍 Copperhead</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>💾 Speichern/Laden</h3>
+                    <div class="button-group">
+                        <button class="btn-success" onclick="saveState()">💾 Speichern</button>
+                        <button class="btn-info" onclick="loadState()">📂 Laden</button>
+                    </div>
+                    <div class="button-group" style="margin-top: 8px;">
+                        <button class="btn-warning" onclick="exportImage()">📸 PNG</button>
+                        <button class="btn-warning" onclick="startGifRecording()">🎬 GIF</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas und Kontext
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let canvasWidth = 1000;
+        let canvasHeight = 700;
+
+        // Spielvariablen
+        let cellSize = 8;
+        let cols, rows;
+        let grid = [];
+        let nextGrid = [];
+        let cellAge = []; // Für Alters-Farbverlauf
+        let heatmap = []; // Für Heatmap
+        let history = []; // Für Zeitreise
+        let isPlaying = false;
+        let generation = 0;
+        let speed = 10;
+        let showGrid = true;
+        let lastFrameTime = 0;
+        let currentMode = 'draw';
+        let currentPattern = null;
+        let selectedPatternData = null;
+        let symmetryMode = 'none';
+        let paintMode = false;
+        let isMouseDown = false;
+        let ageColorMode = false;
+        let heatmapMode = false;
+        let trailMode = false;
+        let populationHistory = [];
+        let maxHistoryLength = 100;
+
+        // Eigene Regeln
+        let customRulesEnabled = false;
+        let birthRules = [3];
+        let surviveRules = [2, 3];
+
+        // Farbschemata
+        const colorSchemes = {
+            classic: { alive: '#000000', dead: '#ffffff', grid: '#cccccc' },
+            ocean: { alive: '#006994', dead: '#e0f7ff', grid: '#b3d9ff' },
+            forest: { alive: '#2d5016', dead: '#e8f5e9', grid: '#c8e6c9' },
+            sunset: { alive: '#ff6b35', dead: '#fff5e6', grid: '#ffe0b2' },
+            purple: { alive: '#6a0dad', dead: '#f3e5f5', grid: '#e1bee7' },
+            neon: { alive: '#00ff00', dead: '#000000', grid: '#003300' }
+        };
+        let currentColorScheme = 'classic';
+
+        // Initialisierung
+        function init() {
+            updateCanvasSize();
+            initRuleEditor();
+            draw();
+            updateStats();
+            drawPopulationChart();
+        }
+
+        function updateCanvasSize() {
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            cols = Math.floor(canvasWidth / cellSize);
+            rows = Math.floor(canvasHeight / cellSize);
+            
+            const oldGrid = grid;
+            const oldAge = cellAge;
+            const oldHeat = heatmap;
+            
+            grid = createEmptyGrid();
+            nextGrid = createEmptyGrid();
+            cellAge = createEmptyGrid();
+            heatmap = createEmptyGrid();
+            
+            // Daten übertragen
+            for (let i = 0; i < Math.min(rows, oldGrid.length); i++) {
+                for (let j = 0; j < Math.min(cols, oldGrid[0]?.length || 0); j++) {
+                    if (oldGrid[i] && oldGrid[i][j] !== undefined) {
+                        grid[i][j] = oldGrid[i][j];
+                        if (oldAge[i] && oldAge[i][j]) cellAge[i][j] = oldAge[i][j];
+                        if (oldHeat[i] && oldHeat[i][j]) heatmap[i][j] = oldHeat[i][j];
+                    }
+                }
+            }
+        }
+
+        function createEmptyGrid() {
+            return Array(rows).fill(null).map(() => Array(cols).fill(0));
+        }
+
+        // Zeichne das Gitter
+        function draw() {
+            const colors = colorSchemes[currentColorScheme];
+            
+            // Hintergrund
+            if (!trailMode) {
+                ctx.fillStyle = colors.dead;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = colors.dead + '10';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Zellen
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    if (grid[i][j] === 1) {
+                        if (heatmapMode) {
+                            const heat = Math.min(heatmap[i][j] / 50, 1);
+                            const r = Math.floor(heat * 255);
+                            const b = Math.floor((1 - heat) * 255);
+                            ctx.fillStyle = `rgb(${r}, 0, ${b})`;
+                        } else if (ageColorMode) {
+                            const age = Math.min(cellAge[i][j] / 100, 1);
+                            ctx.fillStyle = interpolateColor(colors.alive, '#00ff00', age);
+                        } else {
+                            ctx.fillStyle = colors.alive;
+                        }
+                        ctx.fillRect(j * cellSize, i * cellSize, cellSize - 1, cellSize - 1);
+                    }
+                }
+            }
+
+            // Gitternetzlinien
+            if (showGrid && cellSize >= 4) {
+                ctx.strokeStyle = colors.grid;
+                ctx.lineWidth = 0.5;
+                
+                for (let i = 0; i <= rows; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i * cellSize);
+                    ctx.lineTo(canvas.width, i * cellSize);
+                    ctx.stroke();
+                }
+                
+                for (let j = 0; j <= cols; j++) {
+                    ctx.beginPath();
+                    ctx.moveTo(j * cellSize, 0);
+                    ctx.lineTo(j * cellSize, canvas.height);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function interpolateColor(color1, color2, factor) {
+            const c1 = hexToRgb(color1);
+            const c2 = hexToRgb(color2);
+            const r = Math.floor(c1.r + (c2.r - c1.r) * factor);
+            const g = Math.floor(c1.g + (c2.g - c1.g) * factor);
+            const b = Math.floor(c1.b + (c2.b - c1.b) * factor);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 0, g: 0, b: 0 };
+        }
+
+        // Nachbarn zählen
+        function countNeighbors(x, y) {
+            let count = 0;
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    if (i === 0 && j === 0) continue;
+                    
+                    const row = (x + i + rows) % rows;
+                    const col = (y + j + cols) % cols;
+                    count += grid[row][col];
+                }
+            }
+            return count;
+        }
+
+        // Nächste Generation
+        function nextGeneration() {
+            // Historie speichern
+            if (history.length >= 50) history.shift();
+            history.push({
+                grid: grid.map(row => [...row]),
+                age: cellAge.map(row => [...row]),
+                generation: generation
+            });
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const neighbors = countNeighbors(i, j);
+                    const cell = grid[i][j];
+
+                    let newState = 0;
+                    if (customRulesEnabled) {
+                        if (cell === 1) {
+                            newState = surviveRules.includes(neighbors) ? 1 : 0;
+                        } else {
+                            newState = birthRules.includes(neighbors) ? 1 : 0;
+                        }
+                    } else {
+                        // Conway Standard
+                        if (cell === 1) {
+                            newState = (neighbors === 2 || neighbors === 3) ? 1 : 0;
+                        } else {
+                            newState = (neighbors === 3) ? 1 : 0;
+                        }
+                    }
+
+                    nextGrid[i][j] = newState;
+                    
+                    // Alter erhöhen oder zurücksetzen
+                    if (newState === 1) {
+                        cellAge[i][j] = cell === 1 ? cellAge[i][j] + 1 : 1;
+                        heatmap[i][j] = (heatmap[i][j] || 0) + 1;
+                    } else {
+                        cellAge[i][j] = 0;
+                    }
+                }
+            }
+
+            [grid, nextGrid] = [nextGrid, grid];
+            generation++;
+            updateStats();
+        }
+
+        // Statistiken
+        function updateStats() {
+            let aliveCount = 0;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    aliveCount += grid[i][j];
+                }
+            }
+            
+            const totalCells = rows * cols;
+            const populationPercent = ((aliveCount / totalCells) * 100).toFixed(1);
+            
+            // Populations-Historie
+            populationHistory.push(aliveCount);
+            if (populationHistory.length > maxHistoryLength) {
+                populationHistory.shift();
+            }
+            
+            // Stabilität prüfen
+            let stability = 'Aktiv';
+            if (populationHistory.length >= 10) {
+                const recent = populationHistory.slice(-10);
+                const allSame = recent.every(v => v === recent[0]);
+                const oscillating = recent.length >= 6 && 
+                    recent[recent.length-1] === recent[recent.length-3] &&
+                    recent[recent.length-2] === recent[recent.length-4];
+                
+                if (aliveCount === 0) stability = '💀 Ausgestorben';
+                else if (allSame) stability = '⚖️ Stabil';
+                else if (oscillating) stability = '🔄 Oszillierend';
+            }
+            
+            document.getElementById('generation').textContent = generation;
+            document.getElementById('aliveCells').textContent = aliveCount;
+            document.getElementById('population').textContent = populationPercent + '%';
+            document.getElementById('stability').textContent = stability;
+            
+            drawPopulationChart();
+        }
+
+        // Populations-Graph
+        function drawPopulationChart() {
+            const chartCanvas = document.getElementById('populationChart');
+            const chartCtx = chartCanvas.getContext('2d');
+            const w = chartCanvas.width;
+            const h = chartCanvas.height;
+            
+            chartCtx.fillStyle = '#f8f9fa';
+            chartCtx.fillRect(0, 0, w, h);
+            
+            if (populationHistory.length < 2) return;
+            
+            const max = Math.max(...populationHistory, 1);
+            const step = w / maxHistoryLength;
+            
+            chartCtx.strokeStyle = '#667eea';
+            chartCtx.lineWidth = 2;
+            chartCtx.beginPath();
+            
+            populationHistory.forEach((pop, i) => {
+                const x = i * step;
+                const y = h - (pop / max) * h;
+                if (i === 0) chartCtx.moveTo(x, y);
+                else chartCtx.lineTo(x, y);
+            });
+            
+            chartCtx.stroke();
+        }
+
+        // Animation Loop
+        function gameLoop(currentTime) {
+            if (isPlaying) {
+                const deltaTime = currentTime - lastFrameTime;
+                const frameDelay = 1000 / speed;
+
+                if (deltaTime >= frameDelay) {
+                    nextGeneration();
+                    draw();
+                    lastFrameTime = currentTime;
+                }
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Maus-Interaktion
+        let lastDrawnCell = { row: -1, col: -1 };
+
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            handleCanvasClick(e);
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+            lastDrawnCell = { row: -1, col: -1 };
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isMouseDown && paintMode) {
+                handleCanvasClick(e);
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isMouseDown = false;
+            lastDrawnCell = { row: -1, col: -1 };
+        });
+
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const col = Math.floor(x / cellSize);
+            const row = Math.floor(y / cellSize);
+            
+            if (row < 0 || row >= rows || col < 0 || col >= cols) return;
+            
+            // Verhindere mehrfaches Zeichnen derselben Zelle
+            if (paintMode && lastDrawnCell.row === row && lastDrawnCell.col === col) return;
+            lastDrawnCell = { row, col };
+            
+            if (currentMode === 'draw') {
+                if (selectedPatternData) {
+                    insertPatternAt(row, col, selectedPatternData);
+                } else {
+                    toggleCellWithSymmetry(row, col);
+                }
+            } else if (currentMode === 'brush') {
+                if (selectedPatternData) {
+                    insertPatternAt(row, col, selectedPatternData);
+                }
+            } else if (currentMode === 'spray') {
+                sprayPattern(row, col);
+            } else if (currentMode === 'wave') {
+                createWaveFromPoint(row, col);
+            }
+            
+            draw();
+            updateStats();
+        }
+
+        function toggleCellWithSymmetry(row, col) {
+            const newState = grid[row][col] === 1 ? 0 : 1;
+            grid[row][col] = newState;
+            
+            if (symmetryMode === 'horizontal') {
+                const mirrorCol = cols - 1 - col;
+                grid[row][mirrorCol] = newState;
+            } else if (symmetryMode === 'vertical') {
+                const mirrorRow = rows - 1 - row;
+                grid[mirrorRow][col] = newState;
+            } else if (symmetryMode === 'both') {
+                const mirrorRow = rows - 1 - row;
+                const mirrorCol = cols - 1 - col;
+                grid[mirrorRow][col] = newState;
+                grid[row][mirrorCol] = newState;
+                grid[mirrorRow][mirrorCol] = newState;
+            } else if (symmetryMode === 'quad') {
+                const centerRow = Math.floor(rows / 2);
+                const centerCol = Math.floor(cols / 2);
+                const dRow = row - centerRow;
+                const dCol = col - centerCol;
+                
+                if (centerRow + dRow >= 0 && centerRow + dRow < rows && centerCol + dCol >= 0 && centerCol + dCol < cols)
+                    grid[centerRow + dRow][centerCol + dCol] = newState;
+                if (centerRow - dRow >= 0 && centerRow - dRow < rows && centerCol + dCol >= 0 && centerCol + dCol < cols)
+                    grid[centerRow - dRow][centerCol + dCol] = newState;
+                if (centerRow + dRow >= 0 && centerRow + dRow < rows && centerCol - dCol >= 0 && centerCol - dCol < cols)
+                    grid[centerRow + dRow][centerCol - dCol] = newState;
+                if (centerRow - dRow >= 0 && centerRow - dRow < rows && centerCol - dCol >= 0 && centerCol - dCol < cols)
+                    grid[centerRow - dRow][centerCol - dCol] = newState;
+            } else if (symmetryMode === 'radial4') {
+                applyRadialSymmetry(row, col, newState, 4);
+            } else if (symmetryMode === 'radial8') {
+                applyRadialSymmetry(row, col, newState, 8);
+            } else if (symmetryMode === 'diagonal') {
+                grid[col][row] = newState;
+            }
+        }
+
+        function applyRadialSymmetry(row, col, state, count) {
+            const centerRow = Math.floor(rows / 2);
+            const centerCol = Math.floor(cols / 2);
+            const dRow = row - centerRow;
+            const dCol = col - centerCol;
+            
+            for (let i = 0; i < count; i++) {
+                const angle = (i * 2 * Math.PI) / count;
+                const newDRow = Math.round(dRow * Math.cos(angle) - dCol * Math.sin(angle));
+                const newDCol = Math.round(dRow * Math.sin(angle) + dCol * Math.cos(angle));
+                const newRow = centerRow + newDRow;
+                const newCol = centerCol + newDCol;
+                
+                if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
+                    grid[newRow][newCol] = state;
+                }
+            }
+        }
+
+        function insertPatternAt(row, col, pattern) {
+            const startRow = row - Math.floor(pattern.length / 2);
+            const startCol = col - Math.floor(pattern[0].length / 2);
+            
+            for (let i = 0; i < pattern.length; i++) {
+                for (let j = 0; j < pattern[i].length; j++) {
+                    const r = startRow + i;
+                    const c = startCol + j;
+                    if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                        grid[r][c] = pattern[i][j];
+                    }
+                }
+            }
+        }
+
+        function sprayPattern(row, col) {
+            const radius = 3;
+            for (let i = -radius; i <= radius; i++) {
+                for (let j = -radius; j <= radius; j++) {
+                    if (Math.random() > 0.5) continue;
+                    const r = row + i;
+                    const c = col + j;
+                    if (r >= 0 && r < rows && c >= 0 && c < cols) {
+                        grid[r][c] = 1;
+                    }
+                }
+            }
+        }
+
+        function createWaveFromPoint(row, col) {
+            grid[row][col] = 1;
+            const maxRadius = 10;
+            for (let r = 1; r <= maxRadius; r++) {
+                for (let angle = 0; angle < Math.PI * 2; angle += 0.3) {
+                    const newRow = Math.round(row + r * Math.sin(angle));
+                    const newCol = Math.round(col + r * Math.cos(angle));
+                    if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
+                        if (Math.random() > 0.3) {
+                            grid[newRow][newCol] = 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Muster-Definitionen
+        const patterns = {
+            glider: [[0,1,0], [0,0,1], [1,1,1]],
+            blinker: [[1,1,1]],
+            toad: [[0,1,1,1], [1,1,1,0]],
+            beacon: [[1,1,0,0], [1,1,0,0], [0,0,1,1], [0,0,1,1]],
+            pulsar: [
+                [0,0,1,1,1,0,0,0,1,1,1,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [0,0,1,1,1,0,0,0,1,1,1,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,1,1,1,0,0,0,1,1,1,0,0],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,1,1,1,0,0,0,1,1,1,0,0]
+            ],
+            pentadecathlon: [[0,0,1,0,0,0,0,1,0,0],[1,1,0,1,1,1,1,0,1,1],[0,0,1,0,0,0,0,1,0,0]],
+            glidergun: [
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+                [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+                [1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ],
+            acorn: [[0,1,0,0,0,0,0], [0,0,0,1,0,0,0], [1,1,0,0,1,1,1]],
+            rpentomino: [[0,1,1], [1,1,0], [0,1,0]],
+            diehard: [[0,0,0,0,0,0,1,0], [1,1,0,0,0,0,0,0], [0,1,0,0,0,1,1,1]],
+            lightweight: [[0,1,0,0,1],[1,0,0,0,0],[1,0,0,0,1],[1,1,1,1,0]],
+            copperhead: [[0,1,1,0,0,1,1,0],[1,0,0,1,1,0,0,1],[0,1,0,0,0,0,1,0],[0,0,1,0,0,1,0,0],[0,0,1,0,0,1,0,0],[0,1,0,0,0,0,1,0],[1,0,0,1,1,0,0,1],[0,1,1,0,0,1,1,0]]
+        };
+
+        function insertPattern(pattern) {
+            clearGrid();
+            const startRow = Math.floor(rows / 2 - pattern.length / 2);
+            const startCol = Math.floor(cols / 2 - pattern[0].length / 2);
+            
+            for (let i = 0; i < pattern.length; i++) {
+                for (let j = 0; j < pattern[i].length; j++) {
+                    if (startRow + i >= 0 && startRow + i < rows && 
+                        startCol + j >= 0 && startCol + j < cols) {
+                        grid[startRow + i][startCol + j] = pattern[i][j];
+                    }
+                }
+            }
+            
+            generation = 0;
+            draw();
+            updateStats();
+        }
+
+        function sprayPatterns() {
+            if (!selectedPatternData) {
+                showToast('⚠️ Bitte wähle erst ein Muster aus!');
+                return;
+            }
+            
+            clearGrid();
+            const count = Math.floor((rows * cols) / 5000);
+            for (let n = 0; n < count; n++) {
+                const row = Math.floor(Math.random() * rows);
+                const col = Math.floor(Math.random() * cols);
+                insertPatternAt(row, col, selectedPatternData);
+            }
+            draw();
+            updateStats();
+            showToast(`🎨 ${count} Muster verteilt!`);
+        }
+
+        function createWavePattern() {
+            clearGrid();
+            const centerRow = Math.floor(rows / 2);
+            const centerCol = Math.floor(cols / 2);
+            
+            for (let r = 1; r < Math.min(rows, cols) / 2; r += 5) {
+                for (let angle = 0; angle < Math.PI * 2; angle += 0.2) {
+                    const row = Math.round(centerRow + r * Math.sin(angle));
+                    const col = Math.round(centerCol + r * Math.cos(angle));
+                    if (row >= 0 && row < rows && col >= 0 && col < cols) {
+                        grid[row][col] = 1;
+                    }
+                }
+            }
+            draw();
+            updateStats();
+            showToast('🌊 Wellenmuster erstellt!');
+        }
+
+        function clearGrid() {
+            grid = createEmptyGrid();
+            cellAge = createEmptyGrid();
+            generation = 0;
+            history = [];
+            populationHistory = [];
+            draw();
+            updateStats();
+        }
+
+        function randomGrid() {
+            clearGrid();
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    grid[i][j] = Math.random() > 0.7 ? 1 : 0;
+                }
+            }
+            draw();
+            updateStats();
+        }
+
+        // Zeitreise
+        function rewindTime(steps = 10) {
+            if (history.length === 0) {
+                showToast('⚠️ Keine Historie verfügbar!');
+                return;
+            }
+            
+            const targetIndex = Math.max(0, history.length - steps);
+            const state = history[targetIndex];
+            grid = state.grid.map(row => [...row]);
+            cellAge = state.age.map(row => [...row]);
+            generation = state.generation;
+            
+            history = history.slice(0, targetIndex);
+            draw();
+            updateStats();
+            showToast(`⏪ Zurück zu Generation ${generation}`);
+        }
+
+        function fastForward(steps = 10) {
+            for (let i = 0; i < steps; i++) {
+                nextGeneration();
+            }
+            draw();
+            showToast(`⏩ ${steps} Generationen vorwärts`);
+        }
+
+        // Speichern/Laden
+        function saveState() {
+            const state = {
+                grid: grid,
+                generation: generation,
+                cellSize: cellSize,
+                colorScheme: currentColorScheme,
+                customRulesEnabled: customRulesEnabled,
+                birthRules: birthRules,
+                surviveRules: surviveRules
+            };
+            
+            const json = JSON.stringify(state);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `game-of-life-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('💾 Zustand gespeichert!');
+        }
+
+        function loadState() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const state = JSON.parse(event.target.result);
+                        grid = state.grid;
+                        generation = state.generation || 0;
+                        cellSize = state.cellSize || 8;
+                        currentColorScheme = state.colorScheme || 'classic';
+                        
+                        if (state.customRulesEnabled !== undefined) {
+                            customRulesEnabled = state.customRulesEnabled;
+                            birthRules = state.birthRules || [3];
+                            surviveRules = state.surviveRules || [2, 3];
+                            updateRuleEditor();
+                        }
+                        
+                        updateGridSize();
+                        draw();
+                        updateStats();
+                        showToast('📂 Zustand geladen!');
+                    } catch (err) {
+                        showToast('❌ Fehler beim Laden!');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        function exportImage() {
+            const link = document.createElement('a');
+            link.download = `game-of-life-gen${generation}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            showToast('📸 Bild exportiert!');
+        }
+
+        // GIF Recording (vereinfacht)
+        let isRecording = false;
+        let recordedFrames = [];
+
+        function startGifRecording() {
+            if (!isRecording) {
+                isRecording = true;
+                recordedFrames = [];
+                showToast('🎬 GIF-Aufnahme gestartet! (Max 100 Frames)');
+                setTimeout(() => {
+                    if (isRecording) stopGifRecording();
+                }, 10000);
+            } else {
+                stopGifRecording();
+            }
+        }
+
+        function stopGifRecording() {
+            isRecording = false;
+            showToast(`🎬 Aufnahme gestoppt! ${recordedFrames.length} Frames (Export in Entwicklung)`);
+        }
+
+        // Regeleditor
+        function initRuleEditor() {
+            const birthContainer = document.getElementById('birthRules');
+            const surviveContainer = document.getElementById('surviveRules');
+            
+            for (let i = 0; i <= 8; i++) {
+                const birthCheck = createRuleCheckbox(i, 'birth');
+                const surviveCheck = createRuleCheckbox(i, 'survive');
+                birthContainer.appendChild(birthCheck);
+                surviveContainer.appendChild(surviveCheck);
+            }
+            
+            updateRuleEditor();
+        }
+
+        function createRuleCheckbox(num, type) {
+            const div = document.createElement('div');
+            div.className = 'checkbox-item';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${type}-${num}`;
+            checkbox.value = num;
+            checkbox.onchange = () => updateCustomRules();
+            
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.textContent = num;
+            
+            div.appendChild(checkbox);
+            div.appendChild(label);
+            return div;
+        }
+
+        function updateRuleEditor() {
+            for (let i = 0; i <= 8; i++) {
+                document.getElementById(`birth-${i}`).checked = birthRules.includes(i);
+                document.getElementById(`survive-${i}`).checked = surviveRules.includes(i);
+            }
+        }
+
+        function updateCustomRules() {
+            birthRules = [];
+            surviveRules = [];
+            
+            for (let i = 0; i <= 8; i++) {
+                if (document.getElementById(`birth-${i}`).checked) birthRules.push(i);
+                if (document.getElementById(`survive-${i}`).checked) surviveRules.push(i);
+            }
+        }
+
+        // Toast Notification
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideIn 0.3s ease-out reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        // Vollbild
+        function toggleFullscreen() {
+            document.body.classList.toggle('fullscreen');
+            setTimeout(() => {
+                updateCanvasSize();
+                draw();
+            }, 100);
+        }
+
+        // Event Listeners
+        document.getElementById('playPauseBtn').addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playPauseBtn');
+            btn.textContent = isPlaying ? '⏸️ Pause' : '▶️ Start';
+            btn.className = isPlaying ? 'btn-danger' : 'btn-primary';
+        });
+
+        document.getElementById('stepBtn').addEventListener('click', () => {
+            if (!isPlaying) {
+                nextGeneration();
+                draw();
+            }
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', clearGrid);
+        document.getElementById('randomBtn').addEventListener('click', randomGrid);
+
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            speed = parseInt(e.target.value);
+            document.getElementById('speedValue').textContent = speed;
+        });
+
+        document.getElementById('cellSizeSlider').addEventListener('input', (e) => {
+            cellSize = parseInt(e.target.value);
+            document.getElementById('cellSizeValue').textContent = cellSize;
+            updateGridSize();
+            draw();
+            updateStats();
+        });
+
+        document.getElementById('canvasWidthSlider').addEventListener('input', (e) => {
+            canvasWidth = parseInt(e.target.value);
+            document.getElementById('canvasWidthValue').textContent = canvasWidth;
+            updateCanvasSize();
+            draw();
+        });
+
+        document.getElementById('canvasHeightSlider').addEventListener('input', (e) => {
+            canvasHeight = parseInt(e.target.value);
+            document.getElementById('canvasHeightValue').textContent = canvasHeight;
+            updateCanvasSize();
+            draw();
+        });
+
+        document.getElementById('gridToggle').addEventListener('change', (e) => {
+            showGrid = e.target.checked;
+            draw();
+        });
+
+        document.getElementById('paintMode').addEventListener('change', (e) => {
+            paintMode = e.target.checked;
+        });
+
+        document.getElementById('ageColorToggle').addEventListener('change', (e) => {
+            ageColorMode = e.target.checked;
+            draw();
+        });
+
+        document.getElementById('heatmapToggle').addEventListener('change', (e) => {
+            heatmapMode = e.target.checked;
+            if (heatmapMode) {
+                document.getElementById('ageColorToggle').checked = false;
+                ageColorMode = false;
+            }
+            draw();
+        });
+
+        document.getElementById('trailToggle').addEventListener('change', (e) => {
+            trailMode = e.target.checked;
+        });
+
+        document.getElementById('customRulesToggle').addEventListener('change', (e) => {
+            customRulesEnabled = e.target.checked;
+            const editor = document.getElementById('ruleEditor');
+            editor.style.opacity = customRulesEnabled ? '1' : '0.3';
+            editor.style.pointerEvents = customRulesEnabled ? 'auto' : 'none';
+        });
+
+        // Muster-Buttons
+        document.querySelectorAll('.pattern-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const patternName = btn.dataset.pattern;
+                if (patterns[patternName]) {
+                    selectedPatternData = patterns[patternName];
+                    currentPattern = patternName;
+                    document.getElementById('currentPattern').textContent = btn.textContent;
+                    
+                    // Im Brush-Modus bleiben
+                    if (currentMode === 'draw') {
+                        currentMode = 'brush';
+                        updateModeButtons();
+                    }
+                }
+            });
+        });
+
+        // Modi-Buttons
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentMode = btn.dataset.mode;
+                
+                const modeInfo = {
+                    'draw': 'Klicken zum Zeichnen',
+                    'brush': 'Muster malen',
+                    'spray': 'Zufällig sprühen',
+                    'wave': 'Wellen erstellen'
+                };
+                document.getElementById('currentModeInfo').textContent = modeInfo[currentMode];
+                
+                if (currentMode === 'draw') {
+                    selectedPatternData = null;
+                    currentPattern = null;
+                    document.getElementById('currentPattern').textContent = 'Keins';
+                }
+            });
+        });
+
+        function updateModeButtons() {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-mode="${currentMode}"]`).classList.add('active');
+        }
+
+        // Symmetrie-Buttons
+        document.querySelectorAll('.symmetry-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.symmetry-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                symmetryMode = btn.dataset.symmetry;
+                showToast(`🔄 Symmetrie: ${btn.textContent}`);
+            });
+        });
+
+        // Farbschema-Buttons
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentColorScheme = btn.dataset.scheme;
+                draw();
+            });
+        });
+
+        // Tastatur-Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                document.getElementById('playPauseBtn').click();
+            } else if (e.code === 'KeyC') {
+                clearGrid();
+            } else if (e.code === 'KeyR') {
+                randomGrid();
+            } else if (e.code === 'KeyF') {
+                toggleFullscreen();
+            }
+        });
+
+        // Initialisierung und Start
+        init();
+        requestAnimationFrame(gameLoop);
+        showToast('🎮 Erweiterte Edition geladen!');
+    </script>
+</body>
+</html>
