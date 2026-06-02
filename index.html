@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conway's Spiel des Lebens</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #gameCanvas {
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            cursor: crosshair;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: #f0f0f0;
+        }
+
+        .controls-panel {
+            width: 320px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+        }
+
+        .control-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .slider-container {
+            margin: 15px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.2);
+        }
+
+        .value-display {
+            display: inline-block;
+            float: right;
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .pattern-btn {
+            padding: 10px;
+            font-size: 13px;
+            min-width: auto;
+        }
+
+        .stats {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .stat-value {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .color-scheme-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .color-btn {
+            width: 100%;
+            height: 40px;
+            border: 3px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .color-btn.active {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .controls-panel {
+                width: 100%;
+                max-height: none;
+            }
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Conway's Spiel des Lebens</h1>
+            <p class="subtitle">Zellulärer Automat • John Horton Conway • 1970</p>
+        </header>
+
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="gameCanvas" width="800" height="600"></canvas>
+                
+                <div class="info-box">
+                    <strong>🖱️ Steuerung:</strong> Klicken Sie auf das Spielfeld, um Zellen zu setzen/löschen. 
+                    Wählen Sie ein Muster aus oder erstellen Sie Ihr eigenes Design!
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>⏯️ Steuerung</h3>
+                    <div class="button-group">
+                        <button id="playPauseBtn" class="btn-primary">▶️ Start</button>
+                        <button id="stepBtn" class="btn-secondary">⏭️ Schritt</button>
+                    </div>
+                    <div class="button-group" style="margin-top: 10px;">
+                        <button id="clearBtn" class="btn-danger">🗑️ Löschen</button>
+                        <button id="randomBtn" class="btn-success">🎲 Zufall</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>⚡ Geschwindigkeit</h3>
+                    <div class="slider-container">
+                        <label>
+                            FPS: <span class="value-display" id="speedValue">10</span>
+                        </label>
+                        <input type="range" id="speedSlider" min="1" max="60" value="10">
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>📊 Statistiken</h3>
+                    <div class="stats">
+                        <div class="stat-row">
+                            <span class="stat-label">Generation:</span>
+                            <span class="stat-value" id="generation">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Lebende Zellen:</span>
+                            <span class="stat-value" id="aliveCells">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Bevölkerung:</span>
+                            <span class="stat-value" id="population">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>🎨 Darstellung</h3>
+                    <div class="slider-container">
+                        <label>
+                            Zellgröße: <span class="value-display" id="cellSizeValue">10</span>
+                        </label>
+                        <input type="range" id="cellSizeSlider" min="5" max="20" value="10">
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="gridToggle" checked>
+                        <label for="gridToggle">Gitternetzlinien anzeigen</label>
+                    </div>
+                    
+                    <h4 style="margin-top: 15px; margin-bottom: 10px; color: #555;">Farbschema:</h4>
+                    <div class="color-scheme-selector">
+                        <button class="color-btn active" data-scheme="classic" style="background: linear-gradient(135deg, #000 50%, #fff 50%);"></button>
+                        <button class="color-btn" data-scheme="ocean" style="background: linear-gradient(135deg, #006994 50%, #e0f7ff 50%);"></button>
+                        <button class="color-btn" data-scheme="forest" style="background: linear-gradient(135deg, #2d5016 50%, #e8f5e9 50%);"></button>
+                        <button class="color-btn" data-scheme="sunset" style="background: linear-gradient(135deg, #ff6b35 50%, #fff5e6 50%);"></button>
+                        <button class="color-btn" data-scheme="purple" style="background: linear-gradient(135deg, #6a0dad 50%, #f3e5f5 50%);"></button>
+                        <button class="color-btn" data-scheme="neon" style="background: linear-gradient(135deg, #00ff00 50%, #000 50%);"></button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>🎯 Fertige Muster</h3>
+                    <div class="pattern-grid">
+                        <button class="pattern-btn btn-primary" data-pattern="glider">✈️ Gleiter</button>
+                        <button class="pattern-btn btn-primary" data-pattern="blinker">💫 Blinker</button>
+                        <button class="pattern-btn btn-primary" data-pattern="toad">🐸 Kröte</button>
+                        <button class="pattern-btn btn-primary" data-pattern="beacon">🔦 Beacon</button>
+                        <button class="pattern-btn btn-primary" data-pattern="pulsar">⭐ Pulsar</button>
+                        <button class="pattern-btn btn-primary" data-pattern="pentadecathlon">🎯 Pentadecathlon</button>
+                        <button class="pattern-btn btn-primary" data-pattern="glidergun">🔫 Glider Gun</button>
+                        <button class="pattern-btn btn-primary" data-pattern="acorn">🌰 Acorn</button>
+                        <button class="pattern-btn btn-primary" data-pattern="rpentomino">🔷 R-Pentomino</button>
+                        <button class="pattern-btn btn-primary" data-pattern="diehard">💀 Diehard</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>ℹ️ Regeln</h3>
+                    <div style="font-size: 13px; line-height: 1.6; color: #555;">
+                        <p><strong>Geburt:</strong> Eine tote Zelle mit genau 3 lebenden Nachbarn wird lebendig.</p>
+                        <p style="margin-top: 8px;"><strong>Tod:</strong> Eine lebende Zelle stirbt bei weniger als 2 (Einsamkeit) oder mehr als 3 (Überbevölkerung) Nachbarn.</p>
+                        <p style="margin-top: 8px;"><strong>Überleben:</strong> Eine lebende Zelle mit 2 oder 3 Nachbarn überlebt.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas und Kontext
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Spielvariablen
+        let cellSize = 10;
+        let cols = Math.floor(canvas.width / cellSize);
+        let rows = Math.floor(canvas.height / cellSize);
+        let grid = createEmptyGrid();
+        let nextGrid = createEmptyGrid();
+        let isPlaying = false;
+        let generation = 0;
+        let speed = 10; // FPS
+        let showGrid = true;
+        let lastFrameTime = 0;
+
+        // Farbschemata
+        const colorSchemes = {
+            classic: { alive: '#000000', dead: '#ffffff', grid: '#cccccc' },
+            ocean: { alive: '#006994', dead: '#e0f7ff', grid: '#b3d9ff' },
+            forest: { alive: '#2d5016', dead: '#e8f5e9', grid: '#c8e6c9' },
+            sunset: { alive: '#ff6b35', dead: '#fff5e6', grid: '#ffe0b2' },
+            purple: { alive: '#6a0dad', dead: '#f3e5f5', grid: '#e1bee7' },
+            neon: { alive: '#00ff00', dead: '#000000', grid: '#003300' }
+        };
+        let currentColorScheme = 'classic';
+
+        // Erstelle leeres Gitter
+        function createEmptyGrid() {
+            return Array(rows).fill(null).map(() => Array(cols).fill(0));
+        }
+
+        // Initialisierung
+        function init() {
+            updateGridSize();
+            draw();
+            updateStats();
+        }
+
+        // Gittergröße aktualisieren
+        function updateGridSize() {
+            cols = Math.floor(canvas.width / cellSize);
+            rows = Math.floor(canvas.height / cellSize);
+            
+            // Alte Daten bewahren wenn möglich
+            const oldGrid = grid;
+            grid = createEmptyGrid();
+            nextGrid = createEmptyGrid();
+            
+            for (let i = 0; i < Math.min(rows, oldGrid.length); i++) {
+                for (let j = 0; j < Math.min(cols, oldGrid[0].length); j++) {
+                    grid[i][j] = oldGrid[i][j];
+                }
+            }
+        }
+
+        // Zeichne das Gitter
+        function draw() {
+            const colors = colorSchemes[currentColorScheme];
+            
+            // Hintergrund
+            ctx.fillStyle = colors.dead;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Zellen
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    if (grid[i][j] === 1) {
+                        ctx.fillStyle = colors.alive;
+                        ctx.fillRect(j * cellSize, i * cellSize, cellSize - 1, cellSize - 1);
+                    }
+                }
+            }
+
+            // Gitternetzlinien
+            if (showGrid) {
+                ctx.strokeStyle = colors.grid;
+                ctx.lineWidth = 0.5;
+                
+                for (let i = 0; i <= rows; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i * cellSize);
+                    ctx.lineTo(canvas.width, i * cellSize);
+                    ctx.stroke();
+                }
+                
+                for (let j = 0; j <= cols; j++) {
+                    ctx.beginPath();
+                    ctx.moveTo(j * cellSize, 0);
+                    ctx.lineTo(j * cellSize, canvas.height);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Zähle lebende Nachbarn
+        function countNeighbors(x, y) {
+            let count = 0;
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    if (i === 0 && j === 0) continue;
+                    
+                    const row = (x + i + rows) % rows;
+                    const col = (y + j + cols) % cols;
+                    count += grid[row][col];
+                }
+            }
+            return count;
+        }
+
+        // Nächste Generation berechnen
+        function nextGeneration() {
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const neighbors = countNeighbors(i, j);
+                    const cell = grid[i][j];
+
+                    // Conway's Regeln
+                    if (cell === 1) {
+                        // Lebende Zelle
+                        nextGrid[i][j] = (neighbors === 2 || neighbors === 3) ? 1 : 0;
+                    } else {
+                        // Tote Zelle
+                        nextGrid[i][j] = (neighbors === 3) ? 1 : 0;
+                    }
+                }
+            }
+
+            // Gitter tauschen
+            [grid, nextGrid] = [nextGrid, grid];
+            generation++;
+            updateStats();
+        }
+
+        // Statistiken aktualisieren
+        function updateStats() {
+            let aliveCount = 0;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    aliveCount += grid[i][j];
+                }
+            }
+            
+            const totalCells = rows * cols;
+            const populationPercent = ((aliveCount / totalCells) * 100).toFixed(1);
+            
+            document.getElementById('generation').textContent = generation;
+            document.getElementById('aliveCells').textContent = aliveCount;
+            document.getElementById('population').textContent = populationPercent + '%';
+        }
+
+        // Animation Loop
+        function gameLoop(currentTime) {
+            if (isPlaying) {
+                const deltaTime = currentTime - lastFrameTime;
+                const frameDelay = 1000 / speed;
+
+                if (deltaTime >= frameDelay) {
+                    nextGeneration();
+                    draw();
+                    lastFrameTime = currentTime;
+                }
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Maus-Interaktion
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const col = Math.floor(x / cellSize);
+            const row = Math.floor(y / cellSize);
+            
+            if (row >= 0 && row < rows && col >= 0 && col < cols) {
+                grid[row][col] = grid[row][col] === 1 ? 0 : 1;
+                draw();
+                updateStats();
+            }
+        });
+
+        // Muster-Definitionen
+        const patterns = {
+            glider: [[0,1,0], [0,0,1], [1,1,1]],
+            blinker: [[1,1,1]],
+            toad: [[0,1,1,1], [1,1,1,0]],
+            beacon: [[1,1,0,0], [1,1,0,0], [0,0,1,1], [0,0,1,1]],
+            pulsar: [
+                [0,0,1,1,1,0,0,0,1,1,1,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [0,0,1,1,1,0,0,0,1,1,1,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,1,1,1,0,0,0,1,1,1,0,0],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [1,0,0,0,0,1,0,1,0,0,0,0,1],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,1,1,1,0,0,0,1,1,1,0,0]
+            ],
+            pentadecathlon: [
+                [0,0,1,0,0,0,0,1,0,0],
+                [1,1,0,1,1,1,1,0,1,1],
+                [0,0,1,0,0,0,0,1,0,0]
+            ],
+            glidergun: [
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+                [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+                [1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            ],
+            acorn: [[0,1,0,0,0,0,0], [0,0,0,1,0,0,0], [1,1,0,0,1,1,1]],
+            rpentomino: [[0,1,1], [1,1,0], [0,1,0]],
+            diehard: [[0,0,0,0,0,0,1,0], [1,1,0,0,0,0,0,0], [0,1,0,0,0,1,1,1]]
+        };
+
+        // Muster einfügen
+        function insertPattern(pattern) {
+            clearGrid();
+            const startRow = Math.floor(rows / 2 - pattern.length / 2);
+            const startCol = Math.floor(cols / 2 - pattern[0].length / 2);
+            
+            for (let i = 0; i < pattern.length; i++) {
+                for (let j = 0; j < pattern[i].length; j++) {
+                    if (startRow + i >= 0 && startRow + i < rows && 
+                        startCol + j >= 0 && startCol + j < cols) {
+                        grid[startRow + i][startCol + j] = pattern[i][j];
+                    }
+                }
+            }
+            
+            generation = 0;
+            draw();
+            updateStats();
+        }
+
+        // Gitter löschen
+        function clearGrid() {
+            grid = createEmptyGrid();
+            generation = 0;
+            draw();
+            updateStats();
+        }
+
+        // Zufälliges Gitter
+        function randomGrid() {
+            clearGrid();
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    grid[i][j] = Math.random() > 0.7 ? 1 : 0;
+                }
+            }
+            draw();
+            updateStats();
+        }
+
+        // Event Listeners
+        document.getElementById('playPauseBtn').addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            const btn = document.getElementById('playPauseBtn');
+            btn.textContent = isPlaying ? '⏸️ Pause' : '▶️ Start';
+            btn.className = isPlaying ? 'btn-danger' : 'btn-primary';
+        });
+
+        document.getElementById('stepBtn').addEventListener('click', () => {
+            if (!isPlaying) {
+                nextGeneration();
+                draw();
+            }
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', clearGrid);
+        document.getElementById('randomBtn').addEventListener('click', randomGrid);
+
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            speed = parseInt(e.target.value);
+            document.getElementById('speedValue').textContent = speed;
+        });
+
+        document.getElementById('cellSizeSlider').addEventListener('input', (e) => {
+            cellSize = parseInt(e.target.value);
+            document.getElementById('cellSizeValue').textContent = cellSize;
+            updateGridSize();
+            draw();
+            updateStats();
+        });
+
+        document.getElementById('gridToggle').addEventListener('change', (e) => {
+            showGrid = e.target.checked;
+            draw();
+        });
+
+        // Muster-Buttons
+        document.querySelectorAll('.pattern-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const patternName = btn.dataset.pattern;
+                if (patterns[patternName]) {
+                    insertPattern(patterns[patternName]);
+                }
+            });
+        });
+
+        // Farbschema-Buttons
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentColorScheme = btn.dataset.scheme;
+                draw();
+            });
+        });
+
+        // Initialisierung und Start
+        init();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
